@@ -1,6 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
 
 namespace YoutubeExtractor
@@ -9,119 +9,115 @@ namespace YoutubeExtractor
     {
         public static string DecipherWithVersion(string cipher, string cipherVersion)
         {
-            string jsUrl = string.Format("http://s.ytimg.com/yts/jsbin/player-{0}.js", cipherVersion);
-            string js = HttpHelper.DownloadString(jsUrl);
+            string jsUrl = string.Format("http://s.ytimg.com/yts/jsbin/player{0}.js", cipherVersion);
+            string baseJs = HttpHelper.DownloadString(jsUrl);
 
-            //Find "C" in this: var A = B.sig||C (B.s)
-            string functNamePattern = @"\""signature"",\s?([a-zA-Z0-9\$]+)\("; //Regex Formed To Find Word or DollarSign
+            // Find the name of the function that handles deciphering
+            var fnname = Regex.Match(baseJs, @"yt\.akamaized\.net.*encodeURIComponent\((\w+)").Groups[1].Value;
+            var _argnamefnbodyresult = Regex.Match(baseJs, fnname + @"=function\((.+?)\){(.+?)}");
+            var helpername = Regex.Match(_argnamefnbodyresult.Groups[2].Value, @";(.+?)\..+?\(").Groups[1].Value;
+            var helperresult = Regex.Match(baseJs, "var " + helpername + "={[\\s\\S]+?};");
+            var result = helperresult.Groups[0].Value;
 
-            var funcName = Regex.Match(js, functNamePattern).Groups[1].Value;
+            MatchCollection matches = Regex.Matches(result, @"[A-Za-z0-9]+:function\s*([A-z0-9]+)?\s*\((?:[^)(]+|\((?:[^)(]+|\([^)(]*\))*\))*\)\s*\{(?:[^}{]+|\{(?:[^}{]+|\{[^}{]*\})*\})*\}");
+
+            var funcs = _argnamefnbodyresult.Groups[2].Value.Split(';');
+
+            var sign = cipher.ToCharArray();
+
+            foreach (string func in funcs)
+            {
+                foreach (Match group in matches)
+                {
+                    if (group.Value.Contains("reverse"))
+                    {
+                        var test = Regex.Match(group.Value, "^(.*?):").Groups[1].Value;
+
+                        if (func.Contains(test))
+                        {
+                            sign = ReverseFunction(sign);
+                        }
+                    }
+                    else if (group.Value.Contains("splice"))
+                    {
+                        var test = Regex.Match(group.Value, "^(.*?):").Groups[1].Value;
+
+                        if (func.Contains(test))
+                        {
+                            sign = SpliceFunction(sign, GetOpIndex(func));
+                        }
+                    }
+                    else
+                    {
+                        var test = Regex.Match(group.Value, "^(.*?):").Groups[1].Value;
+
+                        if (func.Contains(test))
+                        {
+                            sign = SwapFunction(sign, GetOpIndex(func));
+                        }
+                    }
+                }
+            }
             
-            if (funcName.Contains("$")) 
-            {
-                funcName = "\\" + funcName; //Due To Dollar Sign Introduction, Need To Escape
-            }
-
-            string funcPattern = @"(?!h\.)" + @funcName + @"=function\(\w+\)\{.*?\}"; //Escape funcName string
-            var funcBody = Regex.Match(js, funcPattern, RegexOptions.Singleline).Value; //Entire sig function
-            var lines = funcBody.Split(';'); //Each line in sig function
-
-            string idReverse = "", idSlice = "", idCharSwap = ""; //Hold name for each cipher method
-            string functionIdentifier = "";
-            string operations = "";
-
-            foreach (var line in lines.Skip(1).Take(lines.Length - 2)) //Matches the funcBody with each cipher method. Only runs till all three are defined.
-            {
-                if (!string.IsNullOrEmpty(idReverse) && !string.IsNullOrEmpty(idSlice) &&
-                    !string.IsNullOrEmpty(idCharSwap))
-                {
-                    break; //Break loop if all three cipher methods are defined
-                }
-
-                functionIdentifier = GetFunctionFromLine(line);
-                string reReverse = string.Format(@"{0}:\bfunction\b\(\w+\)", functionIdentifier); //Regex for reverse (one parameter)
-                string reSlice = string.Format(@"{0}:\bfunction\b\([a],b\).(\breturn\b)?.?\w+\.", functionIdentifier); //Regex for slice (return or not)
-                string reSwap = string.Format(@"{0}:\bfunction\b\(\w+\,\w\).\bvar\b.\bc=a\b", functionIdentifier); //Regex for the char swap.
-
-                if (Regex.Match(js, reReverse).Success)
-                {
-                    idReverse = functionIdentifier; //If def matched the regex for reverse then the current function is a defined as the reverse
-                }
-
-                if (Regex.Match(js, reSlice).Success)
-                {
-                    idSlice = functionIdentifier; //If def matched the regex for slice then the current function is defined as the slice.
-                }
-
-                if (Regex.Match(js, reSwap).Success)
-                {
-                    idCharSwap = functionIdentifier; //If def matched the regex for charSwap then the current function is defined as swap.
-                }
-            }
-
-            foreach (var line in lines.Skip(1).Take(lines.Length - 2))
-            {
-                Match m;
-                functionIdentifier = GetFunctionFromLine(line);
-
-                if ((m = Regex.Match(line, @"\(\w+,(?<index>\d+)\)")).Success && functionIdentifier == idCharSwap)
-                {
-                    operations += "w" + m.Groups["index"].Value + " "; //operation is a swap (w)
-                }
-
-                if ((m = Regex.Match(line, @"\(\w+,(?<index>\d+)\)")).Success && functionIdentifier == idSlice)
-                {
-                    operations += "s" + m.Groups["index"].Value + " "; //operation is a slice
-                }
-
-                if (functionIdentifier == idReverse) //No regex required for reverse (reverse method has no parameters)
-                {
-                    operations += "r "; //operation is a reverse
-                }
-            }
-
-            operations = operations.Trim();
-
-            return DecipherWithOperations(cipher, operations);
+            return new string(sign);
         }
 
-        private static string ApplyOperation(string cipher, string op)
+        private static char[] SpliceFunction(char[] a, int b)
         {
-            switch (op[0])
-            {
-                case 'r':
-                    return new string(cipher.ToCharArray().Reverse().ToArray());
-
-                case 'w':
-                    {
-                        int index = GetOpIndex(op);
-                        return SwapFirstChar(cipher, index);
-                    }
-
-                case 's':
-                    {
-                        int index = GetOpIndex(op);
-                        return cipher.Substring(index);
-                    }
-
-                default:
-                    throw new NotImplementedException("Couldn't find cipher operation.");
-            }
+            return a.Splice(b);
         }
 
-        private static string DecipherWithOperations(string cipher, string operations)
+        private static char[] SwapFunction(char[] a, int b)
         {
-            return operations.Split(new[] { " " }, StringSplitOptions.RemoveEmptyEntries)
-                .Aggregate(cipher, ApplyOperation);
+            var c = a[0];
+            a[0] = a[b % a.Length];
+            a[b % a.Length] = c;
+            return a;
         }
 
-        private static string GetFunctionFromLine(string currentLine)
+        private static char[] ReverseFunction(char[] a)
         {
-            Regex matchFunctionReg = new Regex(@"\w+\.(?<functionID>\w+)\("); //lc.ac(b,c) want the ac part.
-            Match rgMatch = matchFunctionReg.Match(currentLine);
-            string matchedFunction = rgMatch.Groups["functionID"].Value;
-            return matchedFunction; //return 'ac'
+            Array.Reverse(a);
+            return a;
         }
+
+        //private static string ApplyOperation(string cipher, string op)
+        //{
+        //    switch (op[0])
+        //    {
+        //        case 'r':
+        //            return new string(cipher.ToCharArray().Reverse().ToArray());
+
+        //        case 'w':
+        //            {
+        //                int index = GetOpIndex(op);
+        //                return SwapFirstChar(cipher, index);
+        //            }
+
+        //        case 's':
+        //            {
+        //                int index = GetOpIndex(op);
+        //                return cipher.Substring(index);
+        //            }
+
+        //        default:
+        //            throw new NotImplementedException("Couldn't find cipher operation.");
+        //    }
+        //}
+
+        //private static string DecipherWithOperations(string cipher, string operations)
+        //{
+        //    return operations.Split(new[] { " " }, StringSplitOptions.RemoveEmptyEntries)
+        //        .Aggregate(cipher, ApplyOperation);
+        //}
+
+        //private static string GetFunctionFromLine(string currentLine)
+        //{
+        //    Regex matchFunctionReg = new Regex(@"\w+\.(?<functionID>\w+)\("); //lc.ac(b,c) want the ac part.
+        //    Match rgMatch = matchFunctionReg.Match(currentLine);
+        //    string matchedFunction = rgMatch.Groups["functionID"].Value;
+        //    return matchedFunction; //return 'ac'
+        //}
 
         private static int GetOpIndex(string op)
         {
@@ -131,13 +127,23 @@ namespace YoutubeExtractor
             return index;
         }
 
-        private static string SwapFirstChar(string cipher, int index)
-        {
-            var builder = new StringBuilder(cipher);
-            builder[0] = cipher[index];
-            builder[index] = cipher[0];
+        //private static string SwapFirstChar(string cipher, int index)
+        //{
+        //    var builder = new StringBuilder(cipher);
+        //    builder[0] = cipher[index];
+        //    builder[index] = cipher[0];
 
-            return builder.ToString();
-        }
+        //    return builder.ToString();
+        //}
+    }
+}
+
+public static class Extensions
+{
+    public static T[] Splice<T>(this T[] source, int start)
+    {
+        var listItems = source.ToList<T>();
+        var items = listItems.Skip(start).ToList<T>();
+        return items.ToArray<T>();
     }
 }
