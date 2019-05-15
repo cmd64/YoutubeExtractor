@@ -4,6 +4,7 @@
     {
         Aac,
         Mp3,
+        Opus,
         Vorbis,
 
         /// <summary>

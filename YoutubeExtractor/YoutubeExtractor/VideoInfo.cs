@@ -9,7 +9,6 @@ namespace YoutubeExtractor
             /* Non-adaptive */
             new VideoInfo(5, VideoType.Flash, 240, false, AudioType.Mp3, 64, AdaptiveType.None),
             new VideoInfo(6, VideoType.Flash, 270, false, AudioType.Mp3, 64, AdaptiveType.None),
-            new VideoInfo(13, VideoType.Mobile, 0, false, AudioType.Aac, 0, AdaptiveType.None),
             new VideoInfo(17, VideoType.Mobile, 144, false, AudioType.Aac, 24, AdaptiveType.None),
             new VideoInfo(18, VideoType.Mp4, 360, false, AudioType.Aac, 96, AdaptiveType.None),
             new VideoInfo(22, VideoType.Mp4, 720, false, AudioType.Aac, 192, AdaptiveType.None),
@@ -44,18 +43,37 @@ namespace YoutubeExtractor
             new VideoInfo(243, VideoType.WebM, 360, false, AudioType.Unknown, 0, AdaptiveType.Video),
             new VideoInfo(244, VideoType.WebM, 480, false, AudioType.Unknown, 0, AdaptiveType.Video),
             new VideoInfo(247, VideoType.WebM, 720, false, AudioType.Unknown, 0, AdaptiveType.Video),
-            new VideoInfo(248, VideoType.WebM, 1080, false, AudioType.Unknown, 0, AdaptiveType.Video),
+            new VideoInfo(248, VideoType.WebM, 1080, false, AudioType.Unknown, 0, AdaptiveType.Video),            
             new VideoInfo(264, VideoType.Mp4, 1440, false, AudioType.Unknown, 0, AdaptiveType.Video),
+            new VideoInfo(266, VideoType.Mp4, 2160, false, AudioType.Unknown, 0, AdaptiveType.Video),
             new VideoInfo(271, VideoType.WebM, 1440, false, AudioType.Unknown, 0, AdaptiveType.Video),
-            new VideoInfo(272, VideoType.WebM, 2160, false, AudioType.Unknown, 0, AdaptiveType.Video),
+            new VideoInfo(272, VideoType.WebM, 4320, false, AudioType.Unknown, 0, AdaptiveType.Video),
             new VideoInfo(278, VideoType.WebM, 144, false, AudioType.Unknown, 0, AdaptiveType.Video),
+            new VideoInfo(298, VideoType.Mp4, 720, false, AudioType.Unknown, 0, AdaptiveType.Video),
+            new VideoInfo(299, VideoType.Mp4, 1080, false, AudioType.Unknown, 0, AdaptiveType.Video),
+            new VideoInfo(302, VideoType.WebM, 720, false, AudioType.Unknown, 0, AdaptiveType.Video),
+            new VideoInfo(303, VideoType.WebM, 1080, false, AudioType.Unknown, 0, AdaptiveType.Video),
+            new VideoInfo(308, VideoType.WebM, 1440, false, AudioType.Unknown, 0, AdaptiveType.Video),
+            new VideoInfo(313, VideoType.WebM, 2160, false, AudioType.Unknown, 0, AdaptiveType.Video),
+            new VideoInfo(315, VideoType.WebM, 2160, false, AudioType.Unknown, 0, AdaptiveType.Video),
+            new VideoInfo(330, VideoType.WebM, 144, false, AudioType.Unknown, 0, AdaptiveType.Video),
+            new VideoInfo(331, VideoType.WebM, 240, false, AudioType.Unknown, 0, AdaptiveType.Video),
+            new VideoInfo(332, VideoType.WebM, 360, false, AudioType.Unknown, 0, AdaptiveType.Video),
+            new VideoInfo(333, VideoType.WebM, 480, false, AudioType.Unknown, 0, AdaptiveType.Video),
+            new VideoInfo(334, VideoType.WebM, 720, false, AudioType.Unknown, 0, AdaptiveType.Video),
+            new VideoInfo(335, VideoType.WebM, 1080, false, AudioType.Unknown, 0, AdaptiveType.Video),
+            new VideoInfo(336, VideoType.WebM, 1440, false, AudioType.Unknown, 0, AdaptiveType.Video),
+            new VideoInfo(337, VideoType.WebM, 2160, false, AudioType.Unknown, 0, AdaptiveType.Video),
 
             /* Adaptive (aka DASH) - Audio */
             new VideoInfo(139, VideoType.Mp4, 0, false, AudioType.Aac, 48, AdaptiveType.Audio),
             new VideoInfo(140, VideoType.Mp4, 0, false, AudioType.Aac, 128, AdaptiveType.Audio),
             new VideoInfo(141, VideoType.Mp4, 0, false, AudioType.Aac, 256, AdaptiveType.Audio),
             new VideoInfo(171, VideoType.WebM, 0, false, AudioType.Vorbis, 128, AdaptiveType.Audio),
-            new VideoInfo(172, VideoType.WebM, 0, false, AudioType.Vorbis, 192, AdaptiveType.Audio)
+            new VideoInfo(172, VideoType.WebM, 0, false, AudioType.Vorbis, 192, AdaptiveType.Audio),
+            new VideoInfo(249, VideoType.WebM, 0, false, AudioType.Opus, 50, AdaptiveType.Audio),
+            new VideoInfo(250, VideoType.WebM, 0, false, AudioType.Opus, 70, AdaptiveType.Audio),
+            new VideoInfo(251, VideoType.WebM, 0, false, AudioType.Opus, 160, AdaptiveType.Audio),
         };
 
         internal VideoInfo(int formatCode)
@@ -107,6 +125,9 @@ namespace YoutubeExtractor
 
                     case AudioType.Mp3:
                         return ".mp3";
+
+                    case AudioType.Opus:
+                        return ".webm";
 
                     case AudioType.Vorbis:
                         return ".ogg";
@@ -179,9 +200,6 @@ namespace YoutubeExtractor
 
                     case VideoType.Mobile:
                         return ".3gp";
-
-                    case VideoType.Flash:
-                        return ".flv";
 
                     case VideoType.WebM:
                         return ".webm";
