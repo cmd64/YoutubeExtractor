@@ -71,7 +71,7 @@ namespace YoutubeExtractor
 
             if (!this.isCanceled)
             {
-                this.ExtractAudio(tempPath);
+                //this.ExtractAudio(tempPath);
             }
 
             this.OnDownloadFinished(EventArgs.Empty);

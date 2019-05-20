@@ -8,9 +8,9 @@
         /// <summary>
         /// Video for mobile devices (3GP).
         /// </summary>
-        Mobile,
-
-        Flash,
+        Mobile_3gp,
+        Flv,
+        Hls,
         Mp4,
         WebM,
 
