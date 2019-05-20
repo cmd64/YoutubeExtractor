@@ -4,6 +4,7 @@
     {
         None,
         Audio,
-        Video
+        Video,
+        Audio_Video
     }
 }

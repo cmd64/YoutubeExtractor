@@ -9,6 +9,42 @@ namespace ExampleApplication
 {
     internal class Program
     {
+        private static void DownloadAudioVideo(IEnumerable<VideoInfo> videoInfos)
+        {
+            /*
+             * We want the first extractable video with the highest audio quality.
+             */
+            VideoInfo video = videoInfos
+                .Where(info => info.AdaptiveType == AdaptiveType.Audio_Video)
+                .OrderByDescending(info => info.AudioBitrate)
+                .First();
+
+            /*
+             * If the video has a decrypted signature, decipher it
+             */
+            if (video.RequiresDecryption)
+            {
+                DownloadUrlResolver.DecryptDownloadUrl(video);
+            }
+
+            /*
+             * Create the video downloader.
+             * The first argument is the video to download.
+             * The second argument is the path to save the video file.
+             */
+            var videoDownloader = new VideoDownloader(video,
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+                RemoveIllegalPathCharacters(video.Title) + video.VideoExtension));
+
+            // Register the ProgressChanged event and print the current progress
+            videoDownloader.DownloadProgressChanged += (sender, args) => Console.WriteLine(args.ProgressPercentage);
+
+            /*
+             * Execute the video downloader.
+             * For GUI applications note, that this method runs synchronously.
+             */
+            videoDownloader.Execute();
+        }
         private static void DownloadAudio(IEnumerable<VideoInfo> videoInfos)
         {
             /*
@@ -88,7 +124,7 @@ namespace ExampleApplication
         private static void Main()
         {
             // Our test youtube link
-            const string link = "https://www.youtube.com/watch?v=7j28s_LUDZw";
+            const string link = "https://www.youtube.com/watch?v=Prq1ae-YFsE";
 
             /*
              * Get the available video formats.
@@ -96,8 +132,9 @@ namespace ExampleApplication
              */
             IEnumerable<VideoInfo> videoInfos = DownloadUrlResolver.GetDownloadUrls(link, false);
 
+            DownloadAudioVideo(videoInfos);
             //DownloadAudio(videoInfos);
-            DownloadVideo(videoInfos);
+            //DownloadVideo(videoInfos);
         }
 
         private static string RemoveIllegalPathCharacters(string path)
