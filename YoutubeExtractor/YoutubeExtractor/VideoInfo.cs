@@ -178,7 +178,7 @@ namespace YoutubeExtractor
         /// </value>
         public bool CanExtractAudio
         {
-            get { return this.VideoType == VideoType.Flv; }
+            get { return this.VideoType == VideoType.Flash; }
         }
 
         /// <summary>
